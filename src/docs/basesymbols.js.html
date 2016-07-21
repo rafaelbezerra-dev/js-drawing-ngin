@@ -1,4 +1,32 @@
-/**
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: basesymbols.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: basesymbols.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
 @author Rafael Nascimento Bezerra
 
 */
@@ -172,9 +200,6 @@ Link.count = 0;
  */
 Link.EventNames = {
     LinkRelease: 'linkrelease',
-    Move: 'linkmove',
-    MouseEnter: 'linkmouseenter',
-    MouseLeave: 'linkmouseleave',
 };
 function Link(ix, iy, fx = undefined, fy = undefined) {
     this.constructor.count++;
@@ -198,10 +223,6 @@ function Link(ix, iy, fx = undefined, fy = undefined) {
     this.__line__ = line;
     this.__origin__ = undefined;
     this.__dest__ = undefined;
-    this.__where__ = {
-        overPort: false,
-        overLink: false,
-    }
 
     this.__listeners__ = {
         contextmenu: this.onContextMenu.bind(this),
@@ -265,18 +286,14 @@ Link.prototype.draw = function () {
         contextmenu: this.onContextMenu.bind(this),
         portmouseenter: this.onMouseEnterPort.bind(this),
         portmouseleave: this.onMouseLeavePort.bind(this),
-        linkmouseenter: this.onMouseEnterLink.bind(this),
-        linkmouseleave: this.onMouseLeaveLink.bind(this),
     };
 
     SVG.draw(this);
     document.addEventListener('mousemove', this.__listeners__.mousemove);
     document.addEventListener('mouseup', this.__listeners__.mouseup);
     // document.addEventListener('contextmenu', this.__listeners__.contextmenu);
-    document.addEventListener(Port.EventNames.MouseEnter, this.__listeners__.portmouseenter);
-    document.addEventListener(Port.EventNames.MouseLeave, this.__listeners__.portmouseleave);
-    document.addEventListener(Link.EventNames.MouseEnter, this.__listeners__.linkmouseenter);
-    document.addEventListener(Link.EventNames.MouseLeave, this.__listeners__.linkmouseleave);
+    document.addEventListener('portmouseenter', this.__listeners__.portmouseenter);
+    document.addEventListener('portmouseleave', this.__listeners__.portmouseleave);
 };
 
 Link.prototype.setOrigin = function (vetex) {
@@ -309,23 +326,6 @@ Link.prototype.setDest = function (vetex) {
     }
 };
 
-Link.prototype.buildNewAnchor = function (x, y) {
-    var anchor = SVG.buildElement('circle',
-        {
-            'cx': x,
-            'cy': y,
-            'r': 6,
-        },
-        {
-            'fill': '#fff',
-            'stroke-width': 2,
-            'stroke': '#000',
-        }
-    );
-    var port = new Port(anchor, x, y, true);
-    return port;
-};
-
 Link.prototype.onMouseMove = function (evt) {
     // console.log('event', evt.clientX, evt.clientY);
     this.updateDestCoordinates(evt.clientX, evt.clientY);
@@ -355,18 +355,14 @@ Link.prototype.updateDestCoordinates = function (x, y) {
 Link.prototype.onMouseUp = function (evt) {
     document.removeEventListener('mousemove', this.__listeners__.mousemove);
     document.removeEventListener('mouseup', this.__listeners__.mouseup);
-    document.removeEventListener(Port.EventNames.MouseEnter, this.__listeners__.portmouseenter);
-    document.removeEventListener(Port.EventNames.MouseLeave, this.__listeners__.portmouseleave);
-    document.removeEventListener(Link.EventNames.MouseEnter, this.__listeners__.linkmouseenter);
-    document.removeEventListener(Link.EventNames.MouseLeave, this.__listeners__.linkmouseleave);
+    document.removeEventListener('portmouseenter', this.__listeners__.portmouseenter);
+    document.removeEventListener('portmouseleave', this.__listeners__.portmouseleave);
     // console.log('link mouse up');
 
     this.__listeners__.mousemove = undefined;
     this.__listeners__.mouseup = undefined;
     this.__listeners__.portmouseenter = undefined;
     this.__listeners__.portmouseleave = undefined;
-    this.__listeners__.linkmouseenter = undefined;
-    this.__listeners__.linkmouseleave = undefined;
 
     this.__svg__.g.style.stroke = '#000';
 
@@ -379,18 +375,6 @@ Link.prototype.onMouseUp = function (evt) {
         e.clientX = evt.clientX;
         e.clientY = evt.clientY;
         document.dispatchEvent(e);
-    }
-
-    if (!this.__where__.overPort && !this.__where__.overLink) {
-        var port = this.buildNewAnchor(evt.clientX, evt.clientY);
-        SVG.draw(port);
-
-        this.updateDestCoordinates(evt.clientX, evt.clientY);
-        this.setDest(port);
-
-        var link = new Link(evt.clientX, evt.clientY);
-        link.setOrigin(port);
-        link.draw();
     }
 };
 
@@ -417,10 +401,6 @@ Link.prototype.onMouseEnter = function (evt) {
 
         document.addEventListener(Link.EventNames.LinkRelease, this.__listeners__.linkrelease);
         this.__svg__.g.addEventListener('mousemove', this.__listeners__.mousemoveover);
-
-        const e = new Event(Link.EventNames.MouseEnter);
-        e.link = this;
-        document.dispatchEvent(e);
     }
 
 };
@@ -430,20 +410,14 @@ Link.prototype.onMouseLeave = function (evt) {
     // this.__svg__.g.style.stroke = '#000';
     this.__svg__.snap_preview.style.opacity = 0;
 
-    document.removeEventListener(Link.EventNames.LinkRelease, this.__listeners__.linkrelease);
+    document.removeEventListener('linkrelease', this.__listeners__.linkrelease);
     this.__svg__.g.addEventListener('mousemove', this.__listeners__.mousemoveover);
     this.__listeners__.linkrelease = undefined;
     this.__listeners__.mousemoveover = undefined;
-
-    if (this.__dest__) {
-        const e = new Event(Link.EventNames.MouseLeave);
-        e.link = this;
-        document.dispatchEvent(e);
-    }
 };
 
 Link.prototype.onOriginChange = function (evt) {
-    if (evt && evt.coord){
+    if (evt &amp;&amp; evt.coord){
         this.__line__.origin = {x:evt.coord.x, y:evt.coord.y};
         this.__svg__.view.setAttribute('x1', this.__line__.origin.x);
         this.__svg__.view.setAttribute('y1', this.__line__.origin.y);
@@ -454,7 +428,7 @@ Link.prototype.onOriginChange = function (evt) {
 };
 
 Link.prototype.onDestChange = function (evt) {
-    if (evt && evt.coord){
+    if (evt &amp;&amp; evt.coord){
         this.__line__.dest = {x:evt.coord.x, y:evt.coord.y};
         this.__svg__.view.setAttribute('x2', this.__line__.dest.x);
         this.__svg__.view.setAttribute('y2', this.__line__.dest.y);
@@ -466,26 +440,25 @@ Link.prototype.onDestChange = function (evt) {
 
 Link.prototype.onLinkRelease = function (evt) {
     // console.log('link release on link ' + this.id);
-    document.removeEventListener(Link.EventNames.LinkRelease, this.__listeners__.linkrelease);
+    document.removeEventListener('linkrelease', this.__listeners__.linkrelease);
     this.__listeners__.linkrelease = undefined;
     evt.stopPropagation();
 
     var p = this.snapToLine(evt.clientX, evt.clientY);
 
-    // var anchor = SVG.buildElement('circle',
-    //     {
-    //         'cx': p.x,
-    //         'cy': p.y,
-    //         'r': 6,
-    //     },
-    //     {
-    //         'fill': '#fff',
-    //         'stroke-width': 2,
-    //         'stroke': '#000',
-    //     }
-    // );
-    // var port = new Port(anchor, p.x, p.y, true);
-    var port = this.buildNewAnchor(p.x, p.y);
+    var anchor = SVG.buildElement('circle',
+        {
+            'cx': p.x,
+            'cy': p.y,
+            'r': 6,
+        },
+        {
+            'fill': '#fff',
+            'stroke-width': 2,
+            'stroke': '#000',
+        }
+    );
+    var port = new Port(anchor, p.x, p.y, true);
     SVG.draw(port);
 
     evt.link.updateDestCoordinates(p.x, p.y);
@@ -533,7 +506,7 @@ Link.prototype.snapToLine = function(x, y) {
 
 Link.prototype.onMouseEnterPort = function(evt) {
     // console.log('link entered port');
-    this.__where__.overPort = true;
+    this.isOverPort = true;
     if (this.__listeners__.mousemove){
         document.removeEventListener('mousemove', this.__listeners__.mousemove);
         this.__listeners__.mousemove = undefined;
@@ -548,26 +521,12 @@ Link.prototype.onMouseEnterPort = function(evt) {
 
 Link.prototype.onMouseLeavePort = function(evt) {
     // console.log('link left port');
-    this.__where__.overPort = false;
+    this.isOverPort = false;
 
     if (!this.__listeners__.mousemove){
         this.__listeners__.mousemove = this.onMouseMove.bind(this);
         document.addEventListener('mousemove', this.__listeners__.mousemove);
     }
-};
-
-Link.prototype.onMouseEnterLink = function(evt) {
-    if (evt.link == this) return;
-    evt.stopPropagation();
-    this.__where__.overLink = true;
-    // console.log('enter');
-};
-
-Link.prototype.onMouseLeaveLink = function(evt) {
-    if (evt.link == this) return;
-    evt.stopPropagation();
-    this.__where__.overLink = false;
-    // console.log('leave');
 };
 
 
@@ -686,7 +645,7 @@ Port.prototype.onMouseEnter = function (evt) {
     };
 
     this.__svg__.g.addEventListener('mouseleave', this.__listeners__.mouseleave);
-    document.addEventListener(Link.EventNames.LinkRelease, this.__listeners__.linkrelease);
+    document.addEventListener('linkrelease', this.__listeners__.linkrelease);
 
     const e = new Event(Port.EventNames.MouseEnter);
     e.port = this;
@@ -700,7 +659,7 @@ Port.prototype.onMouseLeave = function (evt) {
     this.__svg__.view.style.fill = '#fff';
 
     this.__svg__.g.removeEventListener('mouseleave', this.__listeners__.mouseleave);
-    document.removeEventListener(Link.EventNames.LinkRelease, this.__listeners__.linkrelease);
+    document.removeEventListener('linkrelease', this.__listeners__.linkrelease);
 
     this.__listeners__.mouseleave = undefined;
     this.__listeners__.linkrelease = undefined;
@@ -718,7 +677,7 @@ Port.prototype.onLinkRelease = function (evt) {
     var coord = this.snapToPort();
     evt.link.updateDestCoordinates(coord.x, coord.y);
     evt.link.setDest(this);
-    document.removeEventListener(Link.EventNames.LinkRelease, this.__listeners__.linkrelease);
+    document.removeEventListener('linkrelease', this.__listeners__.linkrelease);
     this.__listeners__.linkrelease = undefined;
 };
 
@@ -733,7 +692,7 @@ Port.prototype.onParentMove = function (evt) {
 
 Port.prototype.onMouseDrag = function(evt) {
     // console.log(evt);
-    if (evt.buttons && evt.buttons >= 1){
+    if (evt.buttons &amp;&amp; evt.buttons >= 1){
         console.log('port mouse drag');
         // this.x = evt.clientX;
         // this.y = evt.clientY;
@@ -903,26 +862,26 @@ BaseSymbol.prototype.constructElement = function (el, ref) {
 
 /**
  * Returns all the SVG markups (symbol, ports and controls) within a
- * group tag <g>
+ * group tag &lt;g>
  *
  * @return {SVGElement}  A SVG markup
  * @example
- *   <g class="dragable"
+ *   &lt;g class="dragable"
  *       transform="translate(500,200)">
- *       <g>
- *           <g>
- *               <rect width="150" height="75" ></rect>
- *               <g cursor="pointer">
- *                   <circle cx="150" cy="37.5" r="14"></circle>
- *                   <circle cx="150" cy="37.5" r="6"></circle>
- *               </g>
- *           </g>
- *           <g transform="translate(0160, 0)">
- *               <path fill="#010101" d="..." style="cursor: pointer;">
- *               </path>
- *           </g>
- *       </g>
- *   </g>
+ *       &lt;g>
+ *           &lt;g>
+ *               &lt;rect width="150" height="75" >&lt;/rect>
+ *               &lt;g cursor="pointer">
+ *                   &lt;circle cx="150" cy="37.5" r="14">&lt;/circle>
+ *                   &lt;circle cx="150" cy="37.5" r="6">&lt;/circle>
+ *               &lt;/g>
+ *           &lt;/g>
+ *           &lt;g transform="translate(0160, 0)">
+ *               &lt;path fill="#010101" d="..." style="cursor: pointer;">
+ *               &lt;/path>
+ *           &lt;/g>
+ *       &lt;/g>
+ *   &lt;/g>
  */
 
 BaseSymbol.prototype.getElement = function () {
@@ -955,7 +914,7 @@ BaseSymbol.prototype.getElement = function () {
 // };
 
 BaseSymbol.prototype.onRotate = function (evt) {
-    if (!this.rotation.anchorX && !this.rotation.anchorX) {
+    if (!this.rotation.anchorX &amp;&amp; !this.rotation.anchorX) {
         var box = this.__svg__.view.getBoundingClientRect();
         this.rotation.anchorX = box.width/2;
         this.rotation.anchorY = box.height/2;
@@ -1018,14 +977,37 @@ Rect.prototype.getElement = function () {
 //
 // Symbols.Shapes.Resistor = {
 //     markup:[
-//         '<g class="rotatable">',
-//         '<g class="scalable">',
-//         '<path class="body" d="M10,15h15l2.5-5l5,10l5-10l5,10l5-10l5,10l2.5-5h15" />',
-//         '<rect class="body-bg"/>',
-//         '<circle class="left-port"  />',
-//         '<circle class="right-port" />',
-//         '</g>',
-//         '<text class="label"/>',
-//         '</g>',
+//         '&lt;g class="rotatable">',
+//         '&lt;g class="scalable">',
+//         '&lt;path class="body" d="M10,15h15l2.5-5l5,10l5-10l5,10l5-10l5,10l2.5-5h15" />',
+//         '&lt;rect class="body-bg"/>',
+//         '&lt;circle class="left-port"  />',
+//         '&lt;circle class="right-port" />',
+//         '&lt;/g>',
+//         '&lt;text class="label"/>',
+//         '&lt;/g>',
 //     ].join(''),
 // }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="BaseSymbol.html">BaseSymbol</a></li><li><a href="Dragable.html">Dragable</a></li><li><a href="DrawingEngine.html">DrawingEngine</a></li><li><a href="Resistor.html">Resistor</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Thu Jul 21 2016 00:42:12 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
